@@ -1909,7 +1909,7 @@ def filter_jd_tab_content():
         "💬 Resume/JD Chatbot (Q&A)", # MOVED TO END
         "❓ Interview Prep"            # MOVED TO END
     ])
-        def candidate_dashboard():
+    def candidate_dashboard():
     st.header("👩‍🎓 Candidate Dashboard")
     st.markdown("Welcome! Use the tabs below to manage your CV and access AI preparation tools.")
 
