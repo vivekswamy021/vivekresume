@@ -1,38 +1,36 @@
 # Core UI
-streamlit==1.40.0
+streamlit
 
 # LLM Integration
-langchain==0.3.3
-langchain-core==0.3.12
-langchain-groq==0.1.3
+langchain
+langchain-core
+langchain-groq
 
 # Document Parsing
-PyPDF2==3.0.1
-python-docx==1.1.0
-pdfplumber==0.11.4
+PyPDF2
+python-docx
+pdfplumber
 
 # Data Processing
-pandas==2.2.3
-numpy==1.26.4
+pandas
+numpy
 
 # Text & NLP Utilities
-tiktoken==0.7.0
-regex==2024.9.11
-
+tiktoken
+regex
 # File Handling
-requests==2.32.3
+requests
 
 # Optional (for embeddings, later roadmap modules)
-faiss-cpu==1.8.0
-sentence-transformers==3.0.1
-
+faiss-cpu
+sentence-transformers
 # Markdown / JSON Display
-markdown2==2.5.0
+markdown
 
 # Audio (for mock interview Q&A, future)
-gTTS==2.5.3
-SpeechRecognition==3.10.4
-pydub==0.25.1
+gTTS
+SpeechRecognition
+pydub
 
 # Misc
-python-dotenv==1.0.1
+python-dotenv
