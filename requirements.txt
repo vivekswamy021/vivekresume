@@ -1,36 +1,8 @@
-# Core UI
 streamlit
-
-# LLM Integration
-langchain
-langchain-core
-langchain-groq
-
-# Document Parsing
-PyPDF2
-python-docx
-pdfplumber
-
-# Data Processing
-pandas
-numpy
-
-# Text & NLP Utilities
-tiktoken
-regex
-# File Handling
-requests
-
-# Optional (for embeddings, later roadmap modules)
-faiss-cpu
-sentence-transformers
-# Markdown / JSON Display
-markdown
-
-# Audio (for mock interview Q&A, future)
-gTTS
-SpeechRecognition
-pydub
-
-# Misc
+groq
+pymongo
 python-dotenv
+pdfplumber
+python-docx
+gtts
+openpyxl
