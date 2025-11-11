@@ -2529,7 +2529,7 @@ def candidate_dashboard():
                     st.markdown("---")
                     st.subheader("3. AI Evaluation Report")
                     st.markdown(st.session_state.evaluation_report)
-                    def hiring_dashboard():
+def hiring_dashboard():
     st.header("🏢 Hiring Company Dashboard")
     st.write("Manage job postings and view candidate applications. (Placeholder for future features)")
     
