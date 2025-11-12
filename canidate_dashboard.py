@@ -440,38 +440,40 @@ def vendor_approval_tab_content():
     if "vendor_statuses" not in st.session_state:
         st.session_state.vendor_statuses = {}
         
+    # --- START of Vendor Submission Form ---
     # Using st.form for automatic input clearing upon successful submission
     with st.form("add_vendor_form"):
         st.markdown("#### Vendor Company Details")
         col1, col2 = st.columns(2)
         with col1:
-            vendor_name = st.text_input("Vendor Company Name", key="new_vendor_name", help="The legal name of the vendor company.")
+            # Note: For form clearing to work, use unique keys inside the form
+            vendor_name = st.text_input("Vendor Company Name", key="new_vendor_name_input", help="The legal name of the vendor company.")
         with col2:
-            vendor_domain = st.text_input("Service / Domain Name", key="new_vendor_domain", help="E.g., HR Consulting, SaaS Platform, Recruitment Agency.")
+            vendor_domain = st.text_input("Service / Domain Name", key="new_vendor_domain_input", help="E.g., HR Consulting, SaaS Platform, Recruitment Agency.")
             
-        vendor_code = st.text_input("Vendor ID / Code (if applicable)", key="new_vendor_code", help="Internal tracking code or system ID.")
+        vendor_code = st.text_input("Vendor ID / Code (if applicable)", key="new_vendor_code_input", help="Internal tracking code or system ID.")
         
         st.markdown("#### Contact & Address Details")
         col3, col4, col5 = st.columns(3)
         with col3:
-            contact_person = st.text_input("Contact Person", key="new_contact_person")
+            contact_person = st.text_input("Contact Person", key="new_contact_person_input")
         with col4:
-            contact_email = st.text_input("Email ID", key="new_contact_email")
+            contact_email = st.text_input("Email ID", key="new_contact_email_input")
         with col5:
-            contact_number = st.text_input("Contact Number", key="new_contact_number")
+            contact_number = st.text_input("Contact Number", key="new_contact_number_input")
             
-        company_address = st.text_area("Company Address", key="new_company_address", height=50)
+        company_address = st.text_area("Company Address", key="new_company_address_input", height=50)
 
         st.markdown("#### Submission Details")
         col6, col7 = st.columns(2)
         with col6:
-            # Note: date inputs retain value across rerun, which is generally acceptable for a default
-            submitted_date = st.date_input("Submitted Date", value=date.today(), key="new_vendor_date")
+            # date_input does not clear automatically, but using current date as default is fine
+            submitted_date = st.date_input("Submitted Date", value=date.today(), key="new_vendor_date_input")
         with col7:
             initial_status = st.selectbox(
                 "Set Status", 
                 ["Pending Review", "Approved", "Rejected"],
-                key="new_vendor_status"
+                key="new_vendor_status_select"
             )
         
         add_vendor_button = st.form_submit_button("Add Vendor", use_container_width=True)
@@ -495,11 +497,12 @@ def vendor_approval_tab_content():
                     }
                     st.session_state.vendors.append(new_vendor)
                     st.session_state.vendor_statuses[vendor_id] = initial_status
-                    st.success(f"Vendor **{vendor_name}** added successfully with status **{initial_status}**. Inputs cleared.")
-                    # Rerunning clears the form fields automatically and updates display sections
+                    st.success(f"Vendor **{vendor_name}** added successfully with status **{initial_status}**. Ready for next entry.")
+                    # st.rerun() clears the inputs inside the form and updates the display sections below
                     st.rerun() 
             else:
                 st.error("Please fill in **Vendor Company Name**, **Contact Person**, and **Email ID**.")
+    # --- END of Vendor Submission Form ---
 
     st.markdown("---")
     
