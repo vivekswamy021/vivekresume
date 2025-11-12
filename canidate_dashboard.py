@@ -33,11 +33,7 @@ if not GROQ_API_KEY:
 else:
     client = Groq(api_key=GROQ_API_KEY)
 
-# --- Utility Functions (Truncated for brevity, focusing on Admin functions) ---
-# ... (go_to, get_file_type, extract_content, extract_jd_metadata, parse_with_llm, 
-# extract_jd_from_linkedin_url, evaluate_jd_fit, parse_and_store_resume, 
-# update_resume_metadata are kept in the full code structure but are not shown here) ...
-# --- End of Utility Functions ---
+# --- Utility Functions (Only necessary ones for Admin) ---
 
 def go_to(page_name):
     """Changes the current page in Streamlit's session state."""
@@ -426,9 +422,7 @@ def candidate_approval_tab_content():
     st.subheader("Summary of All Resumes")
     st.dataframe(summary_data, use_container_width=True)
 
-# ----------------------------------------------------
-# 🔑 KEY SECTION: Vendor Approval Logic
-# ----------------------------------------------------
+
 def vendor_approval_tab_content():
     st.header("🤝 Vendor Approval") 
     
@@ -439,14 +433,12 @@ def vendor_approval_tab_content():
         st.session_state.vendor_statuses = {}
         
     # --- START of Vendor Submission Form ---
-    # Using st.form for grouping and submit handling.
-    # Note: clear_on_submit=True only works if the form logic doesn't navigate/rerun.
-    # We use st.rerun() on success, which achieves the same result by resetting the widgets.
-    with st.form("add_vendor_form"):
+    # 🔑 KEY CHANGE: Using clear_on_submit=True to clear input widgets after successful submission.
+    with st.form("add_vendor_form", clear_on_submit=True): 
         st.markdown("#### Vendor Company Details")
         col1, col2 = st.columns(2)
         with col1:
-            # Note the unique keys are crucial for st.form to work correctly
+            # Note: For form clearing to work, use unique keys inside the form
             vendor_name = st.text_input("Vendor Company Name", key="new_vendor_name_input", help="The legal name of the vendor company.")
         with col2:
             vendor_domain = st.text_input("Service / Domain Name", key="new_vendor_domain_input", help="E.g., HR Consulting, SaaS Platform, Recruitment Agency.")
@@ -473,6 +465,8 @@ def vendor_approval_tab_content():
             initial_status = st.selectbox(
                 "Set Status", 
                 ["Pending Review", "Approved", "Rejected"],
+                # We need to set the index to 0 explicitly to ensure it defaults back to 'Pending Review' after clearing
+                index=0, 
                 key="new_vendor_status_select"
             )
         
@@ -484,6 +478,8 @@ def vendor_approval_tab_content():
                 
                 if vendor_id in st.session_state.vendor_statuses:
                     st.warning(f"Vendor '{vendor_name}' already exists.")
+                    # Keep st.rerun() here if the vendor already exists to display the warning immediately 
+                    # before the form tries to clear, but generally, we avoid rerun with clear_on_submit=True
                 else:
                     new_vendor = {
                         'name': vendor_name.strip(),
@@ -493,21 +489,26 @@ def vendor_approval_tab_content():
                         'email': contact_email.strip(),
                         'phone': contact_number.strip() if contact_number else 'N/A',
                         'address': company_address.strip() if company_address else 'N/A',
+                        # The date input object needs to be accessed differently when the form is submitted
                         'submitted_date': submitted_date.strftime("%Y-%m-%d")
                     }
                     st.session_state.vendors.append(new_vendor)
                     st.session_state.vendor_statuses[vendor_id] = initial_status
-                    st.success(f"Vendor **{vendor_name}** added successfully with status **{initial_status}**. Ready for next entry.")
+                    st.success(f"Vendor **{vendor_name}** added successfully with status **{initial_status}**. Fields are now clear for the next entry.")
                     
-                    # 🚀 THIS IS THE KEY LINE: Forces a page refresh, resetting the form fields.
-                    if 'rerun' in dir(st): # Safety check for older Streamlit versions
-                        st.rerun() 
-                    else:
-                        # Fallback for older versions if rerun is not available
-                        st.experimental_rerun()
+                    # 💡 NO st.rerun() HERE. clear_on_submit=True handles the reset and necessary rerun for us.
+                    # We only rerun below to update the 'Summary of All Vendors' dataframe immediately.
+                    
             else:
                 st.error("Please fill in **Vendor Company Name**, **Contact Person**, and **Email ID**.")
+                
     # --- END of Vendor Submission Form ---
+    
+    # Rerun the page script explicitly outside the form only if new data was added.
+    # We must ensure the Summary table is updated immediately.
+    if add_vendor_button and vendor_name and contact_person and contact_email and vendor_id not in st.session_state.vendor_statuses:
+         # Only rerun if a new vendor was actually saved to session state
+         st.rerun()
 
     st.markdown("---")
     
@@ -580,10 +581,6 @@ def vendor_approval_tab_content():
         st.subheader("Summary of All Vendors")
         st.dataframe(summary_data, use_container_width=True)
 
-# ----------------------------------------------------
-# --- End of KEY SECTION: Vendor Approval Logic ---
-# ----------------------------------------------------
-
 
 def admin_dashboard():
     st.title("🧑‍💼 Admin Dashboard")
@@ -612,7 +609,7 @@ def admin_dashboard():
     ])
     # -------------------------
 
-    # --- TAB 1: JD Management ---
+    # --- TAB 1: JD Management (Content Omitted for brevity, but required for full code) ---
     with tab_jd:
         st.subheader("Add and Manage Job Descriptions (JD)")
         
@@ -732,7 +729,7 @@ def admin_dashboard():
             st.info("No Job Descriptions added yet.")
 
 
-    # --- TAB 2: Resume Analysis --- 
+    # --- TAB 2: Resume Analysis (Content Omitted for brevity, but required for full code) --- 
     with tab_analysis:
         st.subheader("Analyze Resumes Against Job Descriptions")
 
@@ -935,7 +932,7 @@ def admin_dashboard():
             vendor_approval_tab_content() 
             
 
-    # --- TAB 4: Statistics ---
+    # --- TAB 4: Statistics (Content Omitted for brevity, but required for full code) ---
     with tab_statistics:
         st.header("System Statistics")
         st.markdown("---")
@@ -990,7 +987,6 @@ if __name__ == '__main__':
     if 'vendors' not in st.session_state: st.session_state.vendors = []
     if 'vendor_statuses' not in st.session_state: st.session_state.vendor_statuses = {}
     
-    # Simple "login" check for example use
     if st.session_state.page == "admin_dashboard":
         admin_dashboard()
     else:
