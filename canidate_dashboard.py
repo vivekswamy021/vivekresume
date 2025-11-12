@@ -409,7 +409,7 @@ def candidate_approval_tab_content():
                     run_update_and_rerun("Rejected")
 
             with col_quick_pending:
-                 # Pending button (NEW)
+                 # Pending button
                 if st.button("🟡 Pending", key=f"quick_pending_{resume_name}_{idx}", use_container_width=True):
                     run_update_and_rerun("Pending")
 
@@ -531,34 +531,6 @@ def vendor_approval_tab_content():
         st.subheader("Summary of All Vendors")
         st.dataframe(summary_data, use_container_width=True)
 
-# --- NEW Third Party Integration Tab ---
-def third_party_integration_tab_content():
-    st.header("🔗 Third Party Integrations")
-    st.markdown("Manage and configure API connections, webhooks, and third-party tools.")
-    st.info("This is a placeholder for future integrations like ATS synchronization, external job board posting, or specialized AI services.")
-
-    st.markdown("### Integration Status")
-    
-    data = {
-        "Service": ["ATS (e.g., Greenhouse)", "Job Board (e.g., Indeed)", "Analytics (e.g., Tableau)", "HRIS (e.g., BambooHR)"],
-        "Status": ["Not Configured", "Active", "Pending Setup", "Active"],
-        "Last Sync": ["N/A", "2025-11-12 10:30 AM", "N/A", "2025-11-11 05:00 PM"],
-        "Action": ["Configure", "Manage", "Setup", "Manage"]
-    }
-    
-    st.dataframe(data, use_container_width=True)
-    
-    st.markdown("---")
-    
-    st.subheader("Configuration Options")
-    st.text_input("Webhook URL for Resume Submissions", "https://api.pragyanai.com/webhooks/resumes", disabled=True)
-    st.text_input("External API Key for Job Posting", "************************", type="password")
-    
-    if st.button("Save Integration Settings", key="save_integrations_admin"):
-        st.success("Integration settings saved.")
-        
-# --- END NEW Third Party Integration Tab ---
-
 
 def admin_dashboard():
     st.title("🧑‍💼 Admin Dashboard")
@@ -578,12 +550,11 @@ def admin_dashboard():
     if "vendor_statuses" not in st.session_state: st.session_state.vendor_statuses = {}
         
     
-    # --- TAB ORDER ---
-    tab_jd, tab_analysis, tab_user_mgmt, tab_integrations, tab_statistics = st.tabs([
+    # --- TAB ORDER (Third Party Integrations tab removed) ---
+    tab_jd, tab_analysis, tab_user_mgmt, tab_statistics = st.tabs([
         "📄 JD Management", 
         "📊 Resume Analysis", 
         "🛠️ User Management", 
-        "🔗 Third Party Integrations", 
         "📈 Statistics" 
     ])
     # -------------------------
@@ -911,12 +882,8 @@ def admin_dashboard():
         with nested_tab_vendor:
             vendor_approval_tab_content() 
             
-    # --- TAB 4: Third Party Integrations (NEW) ---
-    with tab_integrations:
-        third_party_integration_tab_content() 
 
-
-    # --- TAB 5: Statistics ---
+    # --- TAB 4: Statistics (Now Tab 4, previously Tab 5) ---
     with tab_statistics:
         st.header("System Statistics")
         st.markdown("---")
