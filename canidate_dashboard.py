@@ -89,7 +89,7 @@ def extract_content(file_type, file_path):
     except Exception as e:
         return f"Fatal Extraction Error: Failed to read file content ({file_type}). Error: {e}"
 
-# LLM function to extract structured metadata from JD
+# NEW LLM function to extract structured metadata from JD
 @st.cache_data(show_spinner="Extracting JD metadata...")
 def extract_jd_metadata(jd_text):
     """Extracts structured metadata (Role, Job Type, Key Skills) from raw JD text."""
@@ -282,43 +282,33 @@ def parse_and_store_resume(file_input, file_name_key='default', source_type='fil
     }
 
 
-def update_resume_status(resume_name, new_status, applied_jd, submitted_date, resume_list_index):
+def update_resume_metadata(resume_name, new_status, applied_jd, submitted_date, resume_list_index):
     """Callback function to update the status and metadata of a specific resume."""
+    # Update Status
     st.session_state.resume_statuses[resume_name] = new_status
     
+    # Update Metadata (Applied JD and Date)
     if 0 <= resume_list_index < len(st.session_state.resumes_to_analyze):
-        # Update metadata in the main resume list
         st.session_state.resumes_to_analyze[resume_list_index]['applied_jd'] = applied_jd
         st.session_state.resumes_to_analyze[resume_list_index]['submitted_date'] = submitted_date
         st.toast(f"Status for **{resume_name}** updated to **{new_status}**.")
     else:
-        st.error(f"Error: Could not find resume index {resume_list_index} for update.")
+        st.error(f"Error: Could not find resume index {resume_list_index} for metadata update.")
         
 # --- Approval Tab Content Functions (Used within admin_dashboard) ---
 
 def candidate_approval_tab_content():
     st.header("👤 Candidate Approval")
+    st.markdown("### Review and Set Status for Submitted Resumes")
     
     if "resumes_to_analyze" not in st.session_state or not st.session_state.resumes_to_analyze:
         st.info("No resumes have been uploaded and parsed in the 'Resume Analysis' tab yet.")
         return
         
-    # Filter candidates currently in "Pending" status for the immediate review queue
-    pending_resumes = [
-        (idx, resume_data) 
-        for idx, resume_data in enumerate(st.session_state.resumes_to_analyze)
-        if st.session_state.resume_statuses.get(resume_data['name'], "Pending") == "Pending"
-    ]
-    
-    st.markdown("### Review and Set Status for Submitted Resumes (Pending Only)")
-    
-    if not pending_resumes:
-        st.success("🎉 All pending resumes have been reviewed! Check the Summary below.")
-    
     jd_options = [item['name'].replace("--- Simulated JD for: ", "") for item in st.session_state.admin_jd_list]
     jd_options.insert(0, "Select JD") 
 
-    for list_idx, (original_list_index, resume_data) in enumerate(pending_resumes):
+    for idx, resume_data in enumerate(st.session_state.resumes_to_analyze):
         resume_name = resume_data['name']
         current_status = st.session_state.resume_statuses.get(resume_name, "Pending")
         
@@ -330,26 +320,22 @@ def candidate_approval_tab_content():
         # Find highest education/university
         education_list = parsed_data.get('education', [])
         university_info = "N/A"
-        if isinstance(education_list, list) and education_list:
+        if education_list:
             # Simple heuristic: take the first item, often the highest degree or most recent
             university_info = education_list[0] 
             # Trim if too long
             if len(university_info) > 60:
                  university_info = university_info[:57] + "..."
-        elif isinstance(education_list, str):
-             university_info = education_list
-             if len(university_info) > 60:
-                 university_info = university_info[:57] + "..."
-
 
         brief_summary = parsed_data.get('summary', 'AI summary pending or failed during parsing.')
         
+        # --- Current Metadata (Used for display and form defaults) ---
         current_applied_jd = resume_data.get('applied_jd', 'N/A (Pending Assignment)')
         current_submitted_date = resume_data.get('submitted_date', date.today().strftime("%Y-%m-%d"))
 
         # --- Display and Action Block for Individual Candidate ---
         with st.container(border=True):
-            st.markdown(f"### **Candidate:** {resume_name}")
+            st.markdown(f"### **Candidate:** {resume_name} (Status: **{current_status}**)")
             
             # Contact Info & Education
             col_contact, col_education = st.columns(2)
@@ -364,19 +350,9 @@ def candidate_approval_tab_content():
             st.markdown(f"**Brief Resume Info:** *{brief_summary}*")
             st.markdown("---")
             
-            # Status Selector and Update Action
-            col_status, col_jd_select, col_date_input, col_update = st.columns([2, 3, 2, 1])
+            # NEW: JD Selection and Date Input Block (No generic status selector/updater)
+            col_jd_select, col_date_input = st.columns([1, 1])
             
-            # This status selector will allow setting to Approved/Rejected/Shortlisted
-            with col_status:
-                new_status = st.selectbox(
-                    "Current Status",
-                    ["Pending", "Approved", "Rejected", "Shortlisted"],
-                    index=["Pending", "Approved", "Rejected", "Shortlisted"].index(current_status),
-                    key=f"status_select_{resume_name}_{list_idx}", # Use list_idx for unique key in this filtered view
-                    label_visibility="visible"
-                )
-
             with col_jd_select:
                 try:
                     default_value = current_applied_jd if current_applied_jd != "N/A (Pending Assignment)" else "Select JD"
@@ -388,7 +364,7 @@ def candidate_approval_tab_content():
                     "Applied for JD Title", 
                     options=jd_options,
                     index=jd_default_index,
-                    key=f"jd_select_{resume_name}_{list_idx}",
+                    key=f"jd_select_{resume_name}_{idx}",
                 )
                 
             with col_date_input:
@@ -400,66 +376,48 @@ def candidate_approval_tab_content():
                 new_submitted_date = st.date_input(
                     "Submitted Date", 
                     value=date_obj,
-                    key=f"date_input_{resume_name}_{list_idx}"
+                    key=f"date_input_{resume_name}_{idx}"
                 )
-                
-            with col_update:
-                st.markdown("##") # Spacer
-                # Button to set the selected status/metadata
-                if st.button("Update", key=f"update_btn_{resume_name}_{list_idx}", use_container_width=True):
-                    
-                    jd_to_save = new_applied_jd if new_applied_jd != "Select JD" else "N/A (Pending Assignment)"
-                        
-                    # Use the original_list_index to correctly target the resume in the main list
-                    update_resume_status(
-                        resume_name, 
-                        new_status, 
-                        jd_to_save, 
-                        new_submitted_date.strftime("%Y-%m-%d"),
-                        original_list_index # Correct index to update the main list
-                    )
-                    st.rerun() # Rerun to update the pending list view
             
             st.markdown("---")
-            # Dedicated Approve/Reject Buttons for Quick Actions
-            col_quick_approve, col_quick_reject, _ = st.columns([1, 1, 6])
             
+            # Dedicated Approve/Reject/Pending Buttons for Quick Actions
+            col_quick_approve, col_quick_reject, col_quick_pending, _ = st.columns([1, 1, 1, 5])
+            
+            jd_to_save = new_applied_jd if new_applied_jd != "Select JD" else "N/A (Pending Assignment)"
+            date_to_save = new_submitted_date.strftime("%Y-%m-%d")
+
+            # Function to run status update and RERUN
+            def run_update_and_rerun(status_to_set):
+                update_resume_metadata(
+                    resume_name, 
+                    status_to_set, 
+                    jd_to_save, 
+                    date_to_save,
+                    idx
+                )
+                st.rerun()
+
             with col_quick_approve:
-                # Approve button only changes status to "Approved"
-                if st.button("✅ Approve", key=f"quick_approve_{resume_name}_{list_idx}", use_container_width=True):
-                    
-                    jd_to_save = new_applied_jd if new_applied_jd != "Select JD" else "N/A (Pending Assignment)"
-                        
-                    update_resume_status(
-                        resume_name, 
-                        "Approved", # Explicitly set to Approved
-                        jd_to_save, 
-                        new_submitted_date.strftime("%Y-%m-%d"),
-                        original_list_index
-                    )
-                    st.rerun()
+                # Approve button
+                if st.button("✅ Approve", key=f"quick_approve_{resume_name}_{idx}", use_container_width=True):
+                    run_update_and_rerun("Approved")
 
             with col_quick_reject:
-                # Reject button only changes status to "Rejected"
-                if st.button("❌ Reject", key=f"quick_reject_{resume_name}_{list_idx}", use_container_width=True):
-                    
-                    jd_to_save = new_applied_jd if new_applied_jd != "Select JD" else "N/A (Pending Assignment)"
-                        
-                    update_resume_status(
-                        resume_name, 
-                        "Rejected", # Explicitly set to Rejected
-                        jd_to_save, 
-                        new_submitted_date.strftime("%Y-%m-%d"),
-                        original_list_index
-                    )
-                    st.rerun()
+                # Reject button
+                if st.button("❌ Reject", key=f"quick_reject_{resume_name}_{idx}", use_container_width=True):
+                    run_update_and_rerun("Rejected")
+
+            with col_quick_pending:
+                 # Pending button (NEW)
+                if st.button("🟡 Pending", key=f"quick_pending_{resume_name}_{idx}", use_container_width=True):
+                    run_update_and_rerun("Pending")
+
             
     st.markdown("---")
             
-    st.markdown("### Summary of All Resumes")
-    
+    # --- Summary of All Resumes (Updated to reflect latest status) ---
     summary_data = []
-    # Loop through ALL resumes, regardless of status, for the summary table
     for resume_data in st.session_state.resumes_to_analyze:
         name = resume_data['name']
         summary_data.append({
@@ -469,6 +427,7 @@ def candidate_approval_tab_content():
             "Status": st.session_state.resume_statuses.get(name, "Pending")
         })
         
+    st.subheader("Summary of All Resumes")
     st.dataframe(summary_data, use_container_width=True)
 
 
@@ -1012,12 +971,7 @@ if __name__ == '__main__':
     if 'vendors' not in st.session_state: st.session_state.vendors = []
     if 'vendor_statuses' not in st.session_state: st.session_state.vendor_statuses = {}
     
-    # Simple login check mock
-    # If this is run standalone, it will jump straight to the dashboard
     if st.session_state.page == "admin_dashboard":
         admin_dashboard()
     else:
-        # A full application would implement a proper login flow here
-        # For this example, we just show the dashboard directly.
-        st.session_state.page = "admin_dashboard"
-        admin_dashboard()
+        st.info("Log in as Admin to view dashboard.")
