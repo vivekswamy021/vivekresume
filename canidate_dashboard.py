@@ -33,7 +33,11 @@ if not GROQ_API_KEY:
 else:
     client = Groq(api_key=GROQ_API_KEY)
 
-# --- Utility Functions (Only necessary ones for Admin) ---
+# --- Utility Functions (Truncated for brevity, focusing on Admin functions) ---
+# ... (go_to, get_file_type, extract_content, extract_jd_metadata, parse_with_llm, 
+# extract_jd_from_linkedin_url, evaluate_jd_fit, parse_and_store_resume, 
+# update_resume_metadata are kept in the full code structure but are not shown here) ...
+# --- End of Utility Functions ---
 
 def go_to(page_name):
     """Changes the current page in Streamlit's session state."""
@@ -422,7 +426,9 @@ def candidate_approval_tab_content():
     st.subheader("Summary of All Resumes")
     st.dataframe(summary_data, use_container_width=True)
 
-
+# ----------------------------------------------------
+# 🔑 KEY SECTION: Vendor Approval Logic
+# ----------------------------------------------------
 def vendor_approval_tab_content():
     st.header("🤝 Vendor Approval") 
     
@@ -433,12 +439,14 @@ def vendor_approval_tab_content():
         st.session_state.vendor_statuses = {}
         
     # --- START of Vendor Submission Form ---
-    # Using st.form ensures all input widgets are reset upon a successful submit and rerun.
-    with st.form("add_vendor_form", clear_on_submit=False): # Setting clear_on_submit=False is the default, but st.rerun() handles the clear here
+    # Using st.form for grouping and submit handling.
+    # Note: clear_on_submit=True only works if the form logic doesn't navigate/rerun.
+    # We use st.rerun() on success, which achieves the same result by resetting the widgets.
+    with st.form("add_vendor_form"):
         st.markdown("#### Vendor Company Details")
         col1, col2 = st.columns(2)
         with col1:
-            # Note: For form clearing to work, use unique keys inside the form
+            # Note the unique keys are crucial for st.form to work correctly
             vendor_name = st.text_input("Vendor Company Name", key="new_vendor_name_input", help="The legal name of the vendor company.")
         with col2:
             vendor_domain = st.text_input("Service / Domain Name", key="new_vendor_domain_input", help="E.g., HR Consulting, SaaS Platform, Recruitment Agency.")
@@ -491,8 +499,12 @@ def vendor_approval_tab_content():
                     st.session_state.vendor_statuses[vendor_id] = initial_status
                     st.success(f"Vendor **{vendor_name}** added successfully with status **{initial_status}**. Ready for next entry.")
                     
-                    # Rerunning clears the inputs inside the form and updates the display sections below
-                    st.rerun() 
+                    # 🚀 THIS IS THE KEY LINE: Forces a page refresh, resetting the form fields.
+                    if 'rerun' in dir(st): # Safety check for older Streamlit versions
+                        st.rerun() 
+                    else:
+                        # Fallback for older versions if rerun is not available
+                        st.experimental_rerun()
             else:
                 st.error("Please fill in **Vendor Company Name**, **Contact Person**, and **Email ID**.")
     # --- END of Vendor Submission Form ---
@@ -567,6 +579,10 @@ def vendor_approval_tab_content():
         
         st.subheader("Summary of All Vendors")
         st.dataframe(summary_data, use_container_width=True)
+
+# ----------------------------------------------------
+# --- End of KEY SECTION: Vendor Approval Logic ---
+# ----------------------------------------------------
 
 
 def admin_dashboard():
@@ -974,6 +990,7 @@ if __name__ == '__main__':
     if 'vendors' not in st.session_state: st.session_state.vendors = []
     if 'vendor_statuses' not in st.session_state: st.session_state.vendor_statuses = {}
     
+    # Simple "login" check for example use
     if st.session_state.page == "admin_dashboard":
         admin_dashboard()
     else:
