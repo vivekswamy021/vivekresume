@@ -441,16 +441,31 @@ def vendor_approval_tab_content():
         st.session_state.vendor_statuses = {}
         
     with st.form("add_vendor_form"):
+        st.markdown("#### Vendor Company Details")
         col1, col2 = st.columns(2)
         with col1:
-            vendor_name = st.text_input("Vendor Name", key="new_vendor_name")
+            vendor_name = st.text_input("Vendor Company Name", key="new_vendor_name", help="The legal name of the vendor company.")
         with col2:
-            vendor_domain = st.text_input("Service / Domain Name", key="new_vendor_domain")
+            vendor_domain = st.text_input("Service / Domain Name", key="new_vendor_domain", help="E.g., HR Consulting, SaaS Platform, Recruitment Agency.")
             
-        col3, col4 = st.columns(2)
+        vendor_code = st.text_input("Vendor ID / Code (if applicable)", key="new_vendor_code", help="Internal tracking code or system ID.")
+        
+        st.markdown("#### Contact & Address Details")
+        col3, col4, col5 = st.columns(3)
         with col3:
-            submitted_date = st.date_input("Submitted Date", value=date.today(), key="new_vendor_date")
+            contact_person = st.text_input("Contact Person", key="new_contact_person")
         with col4:
+            contact_email = st.text_input("Email ID", key="new_contact_email")
+        with col5:
+            contact_number = st.text_input("Contact Number", key="new_contact_number")
+            
+        company_address = st.text_area("Company Address", key="new_company_address", height=50)
+
+        st.markdown("#### Submission Details")
+        col6, col7 = st.columns(2)
+        with col6:
+            submitted_date = st.date_input("Submitted Date", value=date.today(), key="new_vendor_date")
+        with col7:
             initial_status = st.selectbox(
                 "Set Status", 
                 ["Pending Review", "Approved", "Rejected"],
@@ -460,8 +475,8 @@ def vendor_approval_tab_content():
         add_vendor_button = st.form_submit_button("Add Vendor", use_container_width=True)
 
         if add_vendor_button:
-            if vendor_name and vendor_domain:
-                vendor_id = vendor_name.strip() 
+            if vendor_name and contact_person and contact_email:
+                vendor_id = vendor_name.strip() # Using name as unique ID for status tracking
                 
                 if vendor_id in st.session_state.vendor_statuses:
                     st.warning(f"Vendor '{vendor_name}' already exists.")
@@ -469,6 +484,11 @@ def vendor_approval_tab_content():
                     new_vendor = {
                         'name': vendor_name.strip(),
                         'domain': vendor_domain.strip(),
+                        'code': vendor_code.strip() if vendor_code else 'N/A',
+                        'contact_person': contact_person.strip(),
+                        'email': contact_email.strip(),
+                        'phone': contact_number.strip() if contact_number else 'N/A',
+                        'address': company_address.strip() if company_address else 'N/A',
                         'submitted_date': submitted_date.strftime("%Y-%m-%d")
                     }
                     st.session_state.vendors.append(new_vendor)
@@ -476,7 +496,7 @@ def vendor_approval_tab_content():
                     st.success(f"Vendor **{vendor_name}** added successfully with status **{initial_status}**.")
                     st.rerun() 
             else:
-                st.error("Please fill in both Vendor Name and Service / Domain Name.")
+                st.error("Please fill in **Vendor Company Name**, **Contact Person**, and **Email ID**.")
 
     st.markdown("---")
     
@@ -492,24 +512,38 @@ def vendor_approval_tab_content():
             
             with st.container(border=True):
                 
-                col_info, col_status_input, col_update_btn = st.columns([3, 2, 1])
+                # --- Display Vendor Info ---
+                st.markdown(f"### **{vendor_name}** (Code: `{vendor['code']}`) - **Current Status:** **{current_status}**")
                 
-                with col_info:
-                    st.markdown(f"**Vendor:** {vendor_name} (`{vendor['domain']}`) - *Submitted: {vendor['submitted_date']}*")
-                    st.markdown(f"**Current Status:** **{current_status}**")
+                col_domain, col_contact_info = st.columns(2)
+                
+                with col_domain:
+                    st.markdown(f"**Domain:** {vendor['domain']}")
+                    st.markdown(f"**Address:** *{vendor['address'].replace('\n', ', ')}*")
+                    st.markdown(f"**Submitted:** {vendor['submitted_date']}")
                     
+                with col_contact_info:
+                    st.markdown(f"**Contact Person:** {vendor['contact_person']}")
+                    st.markdown(f"**Email:** `{vendor['email']}`")
+                    st.markdown(f"**Phone:** `{vendor['phone']}`")
+                    
+                st.markdown("---")
+                
+                # --- Status Update Controls ---
+                col_status_input, col_update_btn = st.columns([3, 1])
+                
                 with col_status_input:
                     new_status = st.selectbox(
-                        "Set Status",
+                        "Set New Status",
                         ["Pending Review", "Approved", "Rejected"],
                         index=["Pending Review", "Approved", "Rejected"].index(current_status),
                         key=f"vendor_status_select_{idx}",
-                        label_visibility="collapsed"
+                        # label_visibility="collapsed" # Using a visible label now
                     )
 
                 with col_update_btn:
-                    st.markdown("##") 
-                    if st.button("Update", key=f"vendor_update_btn_{idx}", use_container_width=True):
+                    st.markdown("##") # Space out button
+                    if st.button("Update Status", key=f"vendor_update_btn_{idx}", use_container_width=True):
                         
                         st.session_state.vendor_statuses[vendor_id] = new_status
                         
@@ -523,7 +557,10 @@ def vendor_approval_tab_content():
             name = vendor['name']
             summary_data.append({
                 "Vendor Name": name,
+                "Vendor ID / Code": vendor['code'],
                 "Domain": vendor['domain'],
+                "Contact Person": vendor['contact_person'],
+                "Email ID": vendor['email'],
                 "Submitted Date": vendor['submitted_date'],
                 "Status": st.session_state.vendor_statuses.get(name, "Unknown")
             })
@@ -846,7 +883,6 @@ def admin_dashboard():
             
             display_data = []
             for item in results_df:
-                # Removed the line getting 'status' as it's no longer needed for this table
                 
                 display_data.append({
                     "Resume": item["resume_name"],
@@ -855,14 +891,13 @@ def admin_dashboard():
                     "Skills (%)": item.get("skills_percent", "N/A"),
                     "Experience (%)": item.get("experience_percent", "N/A"), 
                     "Education (%)": item.get("education_percent", "N/A"),
-                    # Approval Status column is explicitly REMOVED here
                 })
 
             st.dataframe(display_data, use_container_width=True)
 
             st.markdown("##### Detailed Reports")
             for item in results_df:
-                status = st.session_state.resume_statuses.get(item["resume_name"], 'Pending') # Still needed for report header
+                status = st.session_state.resume_statuses.get(item["resume_name"], 'Pending') 
                 header_text = f"Report for **{item['resume_name']}** against {item['jd_name']} (Score: **{item['overall_score']}/10** | S: **{item.get('skills_percent', 'N/A')}%** | E: **{item.get('experience_percent', 'N/A')}%** | Edu: **{item.get('education_percent', 'N/A')}%**) - Current Status: {status}"
                 with st.expander(header_text):
                     st.markdown(item['full_analysis'])
