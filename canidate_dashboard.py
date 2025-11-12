@@ -6,12 +6,10 @@ import openpyxl
 import json
 import tempfile
 from groq import Groq
-from gtts import gTTS 
 import traceback
 import re 
 from dotenv import load_dotenv 
 from datetime import date 
-import csv 
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 # -------------------------
@@ -19,12 +17,6 @@ from streamlit.runtime.uploaded_file_manager import UploadedFile
 # -------------------------
 
 GROQ_MODEL = "llama-3.1-8b-instant"
-# Options for LLM functions (Kept for completeness)
-section_options = ["name", "email", "phone", "skills", "education", "experience", "certifications", "projects", "strength", "personal_details", "github", "linkedin", "full resume"]
-question_section_options = ["skills","experience", "certifications", "projects", "education"] 
-DEFAULT_JOB_TYPES = ["Full-time", "Contract", "Internship", "Remote", "Part-time"]
-DEFAULT_ROLES = ["Software Engineer", "Data Scientist", "Product Manager", "HR Manager", "Marketing Specialist", "Operations Analyst"]
-
 # Load environment variables (mocked if running standalone)
 load_dotenv()
 GROQ_API_KEY = os.getenv('GROQ_API_KEY')
@@ -89,7 +81,7 @@ def extract_content(file_type, file_path):
     except Exception as e:
         return f"Fatal Extraction Error: Failed to read file content ({file_type}). Error: {e}"
 
-# NEW LLM function to extract structured metadata from JD
+
 @st.cache_data(show_spinner="Extracting JD metadata...")
 def extract_jd_metadata(jd_text):
     """Extracts structured metadata (Role, Job Type, Key Skills) from raw JD text."""
@@ -441,8 +433,8 @@ def vendor_approval_tab_content():
         st.session_state.vendor_statuses = {}
         
     # --- START of Vendor Submission Form ---
-    # Using st.form for automatic input clearing upon successful submission
-    with st.form("add_vendor_form"):
+    # Using st.form ensures all input widgets are reset upon a successful submit and rerun.
+    with st.form("add_vendor_form", clear_on_submit=False): # Setting clear_on_submit=False is the default, but st.rerun() handles the clear here
         st.markdown("#### Vendor Company Details")
         col1, col2 = st.columns(2)
         with col1:
@@ -467,7 +459,7 @@ def vendor_approval_tab_content():
         st.markdown("#### Submission Details")
         col6, col7 = st.columns(2)
         with col6:
-            # date_input does not clear automatically, but using current date as default is fine
+            # date_input will default back to date.today() on rerun
             submitted_date = st.date_input("Submitted Date", value=date.today(), key="new_vendor_date_input")
         with col7:
             initial_status = st.selectbox(
@@ -498,7 +490,8 @@ def vendor_approval_tab_content():
                     st.session_state.vendors.append(new_vendor)
                     st.session_state.vendor_statuses[vendor_id] = initial_status
                     st.success(f"Vendor **{vendor_name}** added successfully with status **{initial_status}**. Ready for next entry.")
-                    # st.rerun() clears the inputs inside the form and updates the display sections below
+                    
+                    # Rerunning clears the inputs inside the form and updates the display sections below
                     st.rerun() 
             else:
                 st.error("Please fill in **Vendor Company Name**, **Contact Person**, and **Email ID**.")
