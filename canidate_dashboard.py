@@ -550,7 +550,7 @@ def admin_dashboard():
     if "vendor_statuses" not in st.session_state: st.session_state.vendor_statuses = {}
         
     
-    # --- TAB ORDER (Third Party Integrations tab removed) ---
+    # --- TAB ORDER ---
     tab_jd, tab_analysis, tab_user_mgmt, tab_statistics = st.tabs([
         "📄 JD Management", 
         "📊 Resume Analysis", 
@@ -846,7 +846,7 @@ def admin_dashboard():
             
             display_data = []
             for item in results_df:
-                status = st.session_state.resume_statuses.get(item["resume_name"], 'Pending') 
+                # Removed the line getting 'status' as it's no longer needed for this table
                 
                 display_data.append({
                     "Resume": item["resume_name"],
@@ -855,14 +855,15 @@ def admin_dashboard():
                     "Skills (%)": item.get("skills_percent", "N/A"),
                     "Experience (%)": item.get("experience_percent", "N/A"), 
                     "Education (%)": item.get("education_percent", "N/A"),
-                    "Approval Status": status
+                    # Approval Status column is explicitly REMOVED here
                 })
 
             st.dataframe(display_data, use_container_width=True)
 
             st.markdown("##### Detailed Reports")
             for item in results_df:
-                header_text = f"Report for **{item['resume_name']}** against {item['jd_name']} (Score: **{item['overall_score']}/10** | S: **{item.get('skills_percent', 'N/A')}%** | E: **{item.get('experience_percent', 'N/A')}%** | Edu: **{item.get('education_percent', 'N/A')}%**)"
+                status = st.session_state.resume_statuses.get(item["resume_name"], 'Pending') # Still needed for report header
+                header_text = f"Report for **{item['resume_name']}** against {item['jd_name']} (Score: **{item['overall_score']}/10** | S: **{item.get('skills_percent', 'N/A')}%** | E: **{item.get('experience_percent', 'N/A')}%** | Edu: **{item.get('education_percent', 'N/A')}%**) - Current Status: {status}"
                 with st.expander(header_text):
                     st.markdown(item['full_analysis'])
 
@@ -883,7 +884,7 @@ def admin_dashboard():
             vendor_approval_tab_content() 
             
 
-    # --- TAB 4: Statistics (Now Tab 4, previously Tab 5) ---
+    # --- TAB 4: Statistics ---
     with tab_statistics:
         st.header("System Statistics")
         st.markdown("---")
