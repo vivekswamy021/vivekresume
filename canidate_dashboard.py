@@ -494,7 +494,7 @@ def vendor_approval_tab_content():
                     }
                     st.session_state.vendors.append(new_vendor)
                     st.session_state.vendor_statuses[vendor_id] = initial_status
-                    st.success(f"Vendor **{vendor_name}** added successfully with status **{initial_status}**. Fields are now clear for the next entry.")
+                    st.success(f"Vendor **{vendor_name}** added successfully with status **{initial_status}**")
                     
                     # 💡 NO st.rerun() HERE. clear_on_submit=True handles the reset and necessary rerun for us.
                     # We only rerun below to update the 'Summary of All Vendors' dataframe immediately.
