@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit as st
 import os
 import pdfplumber
 import docx
@@ -433,8 +434,9 @@ def vendor_approval_tab_content():
         st.session_state.vendor_statuses = {}
         
     # --- START of Vendor Submission Form ---
-    # 🔑 KEY CHANGE: Using clear_on_submit=True to clear input widgets after successful submission.
-    with st.form("add_vendor_form", clear_on_submit=True): 
+    # Using clear_on_submit=True to clear input widgets after successful submission.
+    form_key = "add_vendor_form"
+    with st.form(form_key, clear_on_submit=True): 
         st.markdown("#### Vendor Company Details")
         col1, col2 = st.columns(2)
         with col1:
@@ -459,27 +461,26 @@ def vendor_approval_tab_content():
         st.markdown("#### Submission Details")
         col6, col7 = st.columns(2)
         with col6:
-            # date_input will default back to date.today() on rerun
             submitted_date = st.date_input("Submitted Date", value=date.today(), key="new_vendor_date_input")
         with col7:
             initial_status = st.selectbox(
                 "Set Status", 
                 ["Pending Review", "Approved", "Rejected"],
-                # We need to set the index to 0 explicitly to ensure it defaults back to 'Pending Review' after clearing
                 index=0, 
                 key="new_vendor_status_select"
             )
         
         add_vendor_button = st.form_submit_button("Add Vendor", use_container_width=True)
+        
+        # Use a temporary flag to track if a *new* vendor was successfully added within this block
+        st.session_state['vendor_added_flag'] = False 
 
         if add_vendor_button:
             if vendor_name and contact_person and contact_email:
-                vendor_id = vendor_name.strip() # Using name as unique ID for status tracking
+                vendor_id = vendor_name.strip()
                 
                 if vendor_id in st.session_state.vendor_statuses:
                     st.warning(f"Vendor '{vendor_name}' already exists.")
-                    # Keep st.rerun() here if the vendor already exists to display the warning immediately 
-                    # before the form tries to clear, but generally, we avoid rerun with clear_on_submit=True
                 else:
                     new_vendor = {
                         'name': vendor_name.strip(),
@@ -489,25 +490,20 @@ def vendor_approval_tab_content():
                         'email': contact_email.strip(),
                         'phone': contact_number.strip() if contact_number else 'N/A',
                         'address': company_address.strip() if company_address else 'N/A',
-                        # The date input object needs to be accessed differently when the form is submitted
                         'submitted_date': submitted_date.strftime("%Y-%m-%d")
                     }
                     st.session_state.vendors.append(new_vendor)
                     st.session_state.vendor_statuses[vendor_id] = initial_status
-                    st.success(f"Vendor **{vendor_name}** added successfully with status **{initial_status}**")
-                    
-                    # 💡 NO st.rerun() HERE. clear_on_submit=True handles the reset and necessary rerun for us.
-                    # We only rerun below to update the 'Summary of All Vendors' dataframe immediately.
-                    
+                    st.success(f"Vendor **{vendor_name}** added successfully with status **{initial_status}**. Fields are now clear for the next entry.")
+                    st.session_state['vendor_added_flag'] = True # Set flag
+
             else:
                 st.error("Please fill in **Vendor Company Name**, **Contact Person**, and **Email ID**.")
                 
-    # --- END of Vendor Submission Form ---
-    
     # Rerun the page script explicitly outside the form only if new data was added.
-    # We must ensure the Summary table is updated immediately.
-    if add_vendor_button and vendor_name and contact_person and contact_email and vendor_id not in st.session_state.vendor_statuses:
-         # Only rerun if a new vendor was actually saved to session state
+    # This updates the Summary table immediately after clearing the form.
+    if st.session_state.get('vendor_added_flag'):
+         del st.session_state['vendor_added_flag'] # Clear the flag
          st.rerun()
 
     st.markdown("---")
@@ -551,7 +547,6 @@ def vendor_approval_tab_content():
                         ["Pending Review", "Approved", "Rejected"],
                         index=["Pending Review", "Approved", "Rejected"].index(current_status),
                         key=f"vendor_status_select_{idx}",
-                        # label_visibility="collapsed" # Using a visible label now
                     )
 
                 with col_update_btn:
@@ -609,7 +604,7 @@ def admin_dashboard():
     ])
     # -------------------------
 
-    # --- TAB 1: JD Management (Content Omitted for brevity, but required for full code) ---
+    # --- TAB 1: JD Management ---
     with tab_jd:
         st.subheader("Add and Manage Job Descriptions (JD)")
         
@@ -729,7 +724,7 @@ def admin_dashboard():
             st.info("No Job Descriptions added yet.")
 
 
-    # --- TAB 2: Resume Analysis (Content Omitted for brevity, but required for full code) --- 
+    # --- TAB 2: Resume Analysis --- 
     with tab_analysis:
         st.subheader("Analyze Resumes Against Job Descriptions")
 
@@ -932,7 +927,7 @@ def admin_dashboard():
             vendor_approval_tab_content() 
             
 
-    # --- TAB 4: Statistics (Content Omitted for brevity, but required for full code) ---
+    # --- TAB 4: Statistics (UPDATED) ---
     with tab_statistics:
         st.header("System Statistics")
         st.markdown("---")
@@ -942,6 +937,7 @@ def admin_dashboard():
         total_vendors = len(st.session_state.vendors)
         no_of_applications = total_candidates 
         
+        # --- Top-Level Metrics ---
         col1, col2, col3, col4 = st.columns(4)
 
         with col1:
@@ -954,25 +950,53 @@ def admin_dashboard():
             st.metric(label="Total Vendors", value=total_vendors, delta_color="off")
 
         with col4:
-            st.metric(label="No. of Applications", value=no_of_applications, delta_color="off")
+            # We can use this to show total resumes, as per the code logic
+            st.metric(label="Total Applications", value=no_of_applications, delta_color="off")
             
         st.markdown("---")
         
-        status_counts = {}
+        # --- Candidate Status Breakdown ---
+        st.subheader("Candidate Status Breakdown (Resumes)")
+        
+        candidate_status_counts = {}
         for status in st.session_state.resume_statuses.values():
-            status_counts[status] = status_counts.get(status, 0) + 1
+            # Standardizing status names for display
+            display_status = status.replace(' ', '') 
+            candidate_status_counts[display_status] = candidate_status_counts.get(display_status, 0) + 1
             
-        st.subheader("Candidate Status Breakdown")
+        status_cols_cand = st.columns(max(len(candidate_status_counts), 1))
         
-        status_cols = st.columns(len(status_counts) or 1)
-        
-        if status_counts:
-            col_count = len(status_cols)
-            for i, (status, count) in enumerate(status_counts.items()):
-                with status_cols[i % col_count]:
-                    st.metric(label=f"{status}", value=count)
+        if candidate_status_counts:
+            # Display metrics in columns, ensuring maximum 3 per row for good spacing
+            for i, (status, count) in enumerate(candidate_status_counts.items()):
+                with status_cols_cand[i % len(status_cols_cand)]:
+                    # Display status in a user-friendly format
+                    display_label = status.title().replace('Of', ' of').replace('Awaiting', 'Awaiting')
+                    st.metric(label=f"Candidates {display_label}", value=count)
         else:
             st.info("No resumes loaded to calculate status breakdown.")
+
+        st.markdown("---")
+        
+        # --- Vendor Status Breakdown (NEW) ---
+        st.subheader("Vendor Status Breakdown")
+        
+        vendor_status_counts = {}
+        for status in st.session_state.vendor_statuses.values():
+            # Standardizing status names for display
+            display_status = status.replace(' ', '')
+            vendor_status_counts[display_status] = vendor_status_counts.get(display_status, 0) + 1
+            
+        status_cols_vend = st.columns(max(len(vendor_status_counts), 1))
+        
+        if vendor_status_counts:
+            # Display metrics in columns
+            for i, (status, count) in enumerate(vendor_status_counts.items()):
+                with status_cols_vend[i % len(status_cols_vend)]:
+                    display_label = status.title().replace('Of', ' of')
+                    st.metric(label=f"Vendors {display_label}", value=count)
+        else:
+            st.info("No vendors added to calculate status breakdown.")
 
 
 # --- Session State & Main Function Initialization (Required for execution) ---
