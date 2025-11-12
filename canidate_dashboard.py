@@ -440,6 +440,7 @@ def vendor_approval_tab_content():
     if "vendor_statuses" not in st.session_state:
         st.session_state.vendor_statuses = {}
         
+    # Using st.form for automatic input clearing upon successful submission
     with st.form("add_vendor_form"):
         st.markdown("#### Vendor Company Details")
         col1, col2 = st.columns(2)
@@ -464,6 +465,7 @@ def vendor_approval_tab_content():
         st.markdown("#### Submission Details")
         col6, col7 = st.columns(2)
         with col6:
+            # Note: date inputs retain value across rerun, which is generally acceptable for a default
             submitted_date = st.date_input("Submitted Date", value=date.today(), key="new_vendor_date")
         with col7:
             initial_status = st.selectbox(
@@ -493,7 +495,8 @@ def vendor_approval_tab_content():
                     }
                     st.session_state.vendors.append(new_vendor)
                     st.session_state.vendor_statuses[vendor_id] = initial_status
-                    st.success(f"Vendor **{vendor_name}** added successfully with status **{initial_status}**.")
+                    st.success(f"Vendor **{vendor_name}** added successfully with status **{initial_status}**. Inputs cleared.")
+                    # Rerunning clears the form fields automatically and updates display sections
                     st.rerun() 
             else:
                 st.error("Please fill in **Vendor Company Name**, **Contact Person**, and **Email ID**.")
@@ -505,6 +508,7 @@ def vendor_approval_tab_content():
     if not st.session_state.vendors:
         st.info("No vendors have been added yet.")
     else:
+        # Loop through vendors to display and allow status update
         for idx, vendor in enumerate(st.session_state.vendors):
             vendor_name = vendor['name']
             vendor_id = vendor_name 
